@@ -6,23 +6,23 @@ Two tasks:
      and insert the photo into the photo_inner area.
 
 Usage:
-    python3 update_slides.py [--headshots-dir ./headshots]
+    python3 update_slides.py [--src ./cbc-auction-2026.pptx] [--headshots-dir ./headshots]
 """
-import os
-import sys
-import io
 import re
 import argparse
 from pathlib import Path
 
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
-from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-PLAYER_NAME_FONT_SIZE = Pt(34)   # 431800 EMU – matches player name on slides
-HEADER_TEXT           = 'CBC  PLAYER AUCTION 2026'
+PLAYER_NAME_FONT_SIZE  = Pt(34)                    # matches player name on slides
+# The header text contains two spaces between 'CBC' and 'PLAYER' (as authored)
+HEADER_TEXT            = 'CBC  PLAYER AUCTION 2026'
+# Shape name used for the player name on every player profile slide
+PLAYER_NAME_SHAPE      = 'TextBox 22'
+# Supported headshot image extensions
+IMAGE_EXTENSIONS       = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'}
 
 # Photo area (from inspection of slide template)
 PHOTO_X = Inches(1.070)
@@ -46,9 +46,8 @@ def find_headshot(name: str, headshots_dir: Path) -> Path | None:
     if not headshots_dir.is_dir():
         return None
 
-    image_exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'}
     candidates = [f for f in headshots_dir.iterdir()
-                  if f.suffix.lower() in image_exts]
+                  if f.suffix.lower() in IMAGE_EXTENSIONS]
     if not candidates:
         return None
 
@@ -133,9 +132,9 @@ def update_header(slide, slide_idx: int):
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--src',           default='/tmp/workspace/minhajz/cbc-storage/cbc-auction-2026.pptx')
-    parser.add_argument('--dest',          default='/tmp/workspace/minhajz/cbc-storage/cbc-auction-2026.pptx')
-    parser.add_argument('--headshots-dir', default='/tmp/workspace/minhajz/cbc-storage/headshots')
+    parser.add_argument('--src',           default='./cbc-auction-2026.pptx')
+    parser.add_argument('--dest',          default='./cbc-auction-2026.pptx')
+    parser.add_argument('--headshots-dir', default='./headshots')
     args = parser.parse_args()
 
     headshots_dir = Path(args.headshots_dir)
@@ -143,7 +142,7 @@ def main():
         print(f'[WARN] headshots dir not found: {headshots_dir}')
     else:
         imgs = [f for f in headshots_dir.iterdir()
-                if f.suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}]
+                if f.suffix.lower() in IMAGE_EXTENSIONS]
         print(f'Found {len(imgs)} image(s) in headshots folder.')
 
     print(f'Opening {args.src} …')
@@ -166,7 +165,7 @@ def main():
         # Extract player name
         player_name = None
         for shape in slide.shapes:
-            if shape.name == 'TextBox 22' and shape.has_text_frame:
+            if shape.name == PLAYER_NAME_SHAPE and shape.has_text_frame:
                 player_name = shape.text_frame.text.strip()
                 break
 
